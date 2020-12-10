@@ -5,9 +5,14 @@
         <el-aside width="200px" class="rectangle">
           <aside-bar />
         </el-aside>
-        <el-main>
-          <router-view style="margin-bottom: 80px" />
-        </el-main>
+        <el-container>
+          <el-header>
+            <header-bar />
+          </el-header>
+          <el-main>
+            <router-view style="margin-bottom: 80px" />
+          </el-main>
+        </el-container>
       </el-container>
       <el-footer :style="{ height }">
         <footer-bar />
@@ -18,6 +23,7 @@
 
 <script>
 import FooterBar from './components/FooterBar'
+import HeaderBar from './components/HeaderBar'
 import AsideBar from './components/AsideBar'
 
 export default {
@@ -30,6 +36,7 @@ export default {
   },
   components: {
     FooterBar,
+    HeaderBar,
     AsideBar
   }
 }
@@ -56,6 +63,6 @@ export default {
 }
 .rectangle {
   border-radius: 8px;
-  background: #8fa7ff;
+  background: #2667ad;
 }
 </style>
