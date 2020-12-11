@@ -15,11 +15,11 @@ export default new Vuex.Store({
   },
   mutations: {
     addTableData (state, data) {
-      let result = state.totTaskData.find((res) => {
+      let result = state.totTaskData.findIndex((res) => {
         return res.name === data.name
       })
-      if (result !== undefined) {
-        result = data
+      if (result !== -1) {
+        state.totTaskData[result] = data
         if (data.progress === data.size) {
           let indexR = state.runningTaskData.findIndex((res) => {
             return res.name === name
@@ -27,6 +27,13 @@ export default new Vuex.Store({
           if (indexR === -1) return
           state.runningTaskData.splice(indexR, 1)
           state.completedTaskData.push(data)
+        } else {
+          let indexR = state.completedTaskData.findIndex((res) => {
+            return res.name === name
+          })
+          if (indexR === -1) return
+          state.completedTaskData.splice(indexR, 1)
+          state.runningTaskData.push(data)
         }
         return
       }
