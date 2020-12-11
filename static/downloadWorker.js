@@ -10,6 +10,7 @@ function download (data) {
     parentPort.postMessage({'final': true, 'code': 'finish', 'msg': 'over'})
     return
   }
+
   let remote = new net.Socket()
 
   remote.on('connect', () => {
@@ -95,5 +96,6 @@ function download (data) {
 }
 
 parentPort.on('message', (data) => {
+  console.log('receive', data)
   download(data)
 })

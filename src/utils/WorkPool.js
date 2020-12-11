@@ -12,7 +12,7 @@ class WorkerPool {
       throw new Error('Number of threads should be greater or equal than 1!')
     }
 
-    console.log('workPool = ', numberOfThreads)
+    this.shutdown = false
 
     this.workerPath = workerPath
     this.numberOfThreads = numberOfThreads
@@ -32,7 +32,18 @@ class WorkerPool {
     }
   }
 
+  resume () {
+    this.shutdown = false
+    this._workersById = {}
+    for (let i = 0; i < this.numberOfThreads; i++) {
+      this._workersById[i] = new Worker(this.workerPath)
+      // 将这些 Worker 设置为未激活状态
+      this._activeWorkersById[i] = false
+    }
+  }
+
   getInactiveWorkerId () {
+    if (this.shutdown) return -1
     for (let i = 0; i < this.numberOfThreads; i++) {
       if (!this._activeWorkersById[i]) return i
     }
@@ -83,6 +94,11 @@ class WorkerPool {
   }
 
   run (data) {
+    if (this.shutdown) {
+      return new Promise((resolve, reject) => {
+        reject(new Error('workpool is shutdown already'))
+      })
+    }
     // Promise 是个好东西
     return new Promise((resolve, reject) => {
       // 调用 getInactiveWorkerId() 获取一个空闲的 Worker
@@ -103,20 +119,21 @@ class WorkerPool {
         this._queue.push(taskObj)
         return null
       }
-
       // 有一个空闲的 Worker，用它执行任务
       this.runWorker(availableWorkerId, taskObj)
     })
   }
 
   destroy (force = false) {
+    this.shutdown = true
+    this._queue.splice(0, this._queue.length)
     for (let i = 0; i < this.numberOfThreads; i++) {
       if (this._activeWorkersById[i] && !force) {
         // 通常情况下，不应该在还有 Worker 在执行的时候就销毁它，这一定是什么地方出了问题，所以还是抛个 Error 比较好
         // 不过保留一个 force 参数，总有人用得到的
         throw new Error(`The worker ${i} is still runing!`)
       }
-
+      this._activeWorkersById[i] = false
       // 销毁这个 Worker
       this._workersById[i].terminate()
     }

@@ -14,7 +14,7 @@ if (!fs.existsSync(downloadDir)) {
   fs.mkdirSync(downloadDir)
 }
 
-class downloadManager extends EventEmitter {
+class DownloadManager extends EventEmitter {
   constructor (filePath, store) {
     super()
     this.configFile = fs.openSync(filePath + '.json', 'r')
@@ -25,7 +25,7 @@ class downloadManager extends EventEmitter {
     this.configFile = filePath + '.json'
     this.file = fs.openSync(filePath + '.ltf', 'w')
     // eslint-disable-next-line no-path-concat
-    this.workpool = new WorkerPool('./static/downloadWorker.js', 64)
+    this.workpool = new WorkerPool('./static/downloadWorker.js')
     this.runTask = {}
     this.on('finish', () => {
       if (Object.getOwnPropertyNames(this.config['tasks']).length === 0 && fs.existsSync(filePath + '.ltf')) {
@@ -67,7 +67,9 @@ class downloadManager extends EventEmitter {
         delete this.config.tasks[data.task.toString()]
 
         this.saveInfo()
+
         if (!this.runTask.hasOwnProperty(newTask.toString())) {
+          this.newTask(data)
           this.emit('finish')
           return
         }
@@ -118,22 +120,26 @@ class downloadManager extends EventEmitter {
           this.saveInfo()
         }
       }
-      if (this.workpool.getInactiveWorkerId() !== -1) {
-        let dataN = {
-          'host': data.host,
-          'port': data.port,
-          'task': this.findTask(),
-          'FileName': this.config['FileName'],
-          'FileSize': this.config['FileSize']
-        }
-        this.workpool.run(dataN).then((res) => {
-          console.log(res)
-          this.emit(res['code'], res)
-        }).catch(err => {
-          console.log('download error : ', err)
-        })
-      }
+      this.newTask(data)
     })
+  }
+
+  newTask (data) {
+    if (this.workpool.getInactiveWorkerId() !== -1) {
+      let dataN = {
+        'host': data.host,
+        'port': data.port,
+        'task': this.findTask(),
+        'FileName': this.config['FileName'],
+        'FileSize': this.config['FileSize']
+      }
+      this.workpool.run(dataN).then((res) => {
+        console.log(res)
+        this.emit(res['code'], res)
+      }).catch(err => {
+        console.log('download error : ', err)
+      })
+    }
   }
 
   saveInfo () {
@@ -173,6 +179,23 @@ class downloadManager extends EventEmitter {
 
     this.saveInfo()
     return newTask
+  }
+
+  pause () {
+    this.workpool.destroy(true)
+    this.runTask = {}
+  }
+
+  promiseDownload (ck) {
+    if (!ck) this.workpool.resume()
+    return new Promise((resolve, reject) => {
+      try {
+        this.download()
+        resolve(true)
+      } catch (e) {
+        reject(e, false)
+      }
+    })
   }
 
   download () {
@@ -238,7 +261,11 @@ const receiveFile = (host, port) => {
         console.log('save success', r)
         // direct download test -- remove in release
         // eslint-disable-next-line new-cap,no-path-concat
-        let down = new downloadManager(downloadDir + '/' + fileName, this.$store)
+        let down = new DownloadManager(downloadDir + '/' + fileName, this.$store)
+        this.$store.commit('addDownloader', {
+          down,
+          name: fileName
+        })
         down.download()
       }).catch((err) => {
         console.log('error = ', err)
@@ -273,4 +300,4 @@ let download = (host, port, store) => {
   })
 }
 
-export {download}
+export {download, DownloadManager}

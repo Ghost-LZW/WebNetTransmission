@@ -47,14 +47,14 @@ export default {
     this.travel(this.$db.get('downloadDir'), (infopath) => {
       if (path.extname(infopath) === '.json') {
         let filepath = infopath.substring(0, infopath.length - 5)
-        if (fs.existsSync(filepath)) {
+        if (fs.existsSync(filepath) || fs.existsSync(filepath + '.ltf')) {
           let data = {name: path.basename(filepath)}
           let info = JSON.parse(fs.readFileSync(infopath).toString())
           data.size = info.FileSize
           let solved = 0
           for (let task in info.tasks) {
             if (info.tasks.hasOwnProperty(task)) {
-              solved += info.tasks.task
+              solved += info.tasks[task]
             }
           }
           data.progress = data.size - solved

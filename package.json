@@ -12,7 +12,7 @@
     "frame": true,
     "kiosk": false,
     "show_in_taskbar": true,
-    "width": 980,
+    "width": 1150,
     "height": 730
   },
   "nodejs": true,

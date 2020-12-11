@@ -3,7 +3,7 @@ const fs = require('fs')
 const path = require('path')
 const constant = JSON.parse(fs.readFileSync('./static/constant.json').toString())
 
-let res = ''
+let resSet = []
 
 let server = net.createServer(
   (connection) => {
@@ -21,6 +21,7 @@ let server = net.createServer(
       ++pos
       console.log(pos)
       let buffer
+      let res = resSet.slice(-1).toString()
       switch (recvRes[pos]) {
         case '0'.charCodeAt(0) :
           console.log('get in')
@@ -44,6 +45,12 @@ let server = net.createServer(
           let nameSize = recvRes[++pos]
           ++pos
           let fileName = recvRes.slice(pos, pos + nameSize).toString()
+          let index
+          if ((index = resSet.findIndex((res) => {
+            return path.basename(res) === fileName
+          })) !== -1) {
+            res = resSet[index]
+          }
           pos += nameSize
           let fileSize = recvRes.slice(pos, pos + 6).readIntBE(0, 6)
           console.log(recvRes.slice(pos, pos + 6))
@@ -99,18 +106,18 @@ server.on('error', (err) => {
 
 server.setMaxListeners(16)
 
-let beginServer = (resource) => {
-  res = resource
+let beginServer = (resource, port) => {
+  resSet.push(resource)
   if (!server.listening) {
-    server.listen(5785, () => {
+    server.listen(port, () => {
       console.log('tcp start')
     })
   }
 }
 
-let serverFile = (res) => {
+let serverFile = (res, port) => {
   return new Promise((resolve) => {
-    beginServer(res)
+    beginServer(res, port)
     resolve(true)
   })
 }
