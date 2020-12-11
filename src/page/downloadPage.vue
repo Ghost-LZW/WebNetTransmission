@@ -25,7 +25,7 @@ export default {
   },
   methods: {
     begin_download () {
-      download(this.ip, this.port).then(r => {
+      download(this.ip, this.port, this.$store).then(r => {
         console.log(r, 'download success')
       })
     }

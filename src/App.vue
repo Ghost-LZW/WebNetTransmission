@@ -25,6 +25,8 @@
 import FooterBar from './components/FooterBar'
 import HeaderBar from './components/HeaderBar'
 import AsideBar from './components/AsideBar'
+const fs = require('fs')
+const path = require('path')
 
 export default {
   name: 'App',
@@ -38,6 +40,44 @@ export default {
     FooterBar,
     HeaderBar,
     AsideBar
+  },
+  created () {
+    this.$db.save('downloadDir', path.join(path.dirname(process.execPath) + '/download'))
+    console.log(this.$db.get('downloadDir'))
+    this.travel(this.$db.get('downloadDir'), (infopath) => {
+      if (path.extname(infopath) === '.json') {
+        let filepath = infopath.substring(0, infopath.length - 5)
+        if (fs.existsSync(filepath)) {
+          let data = {name: path.basename(filepath)}
+          let info = JSON.parse(fs.readFileSync(infopath).toString())
+          data.size = info.FileSize
+          let solved = 0
+          for (let task in info.tasks) {
+            if (info.tasks.hasOwnProperty(task)) {
+              solved += info.tasks.task
+            }
+          }
+          data.progress = data.size - solved
+          data.isPaused = true
+
+          this.$store.commit('addTableData', data)
+        }
+      }
+    })
+    console.log(this.$store.state)
+  },
+  methods: {
+    travel (dir, callback) {
+      if (!fs.existsSync(dir)) return
+      fs.readdirSync(dir).forEach((file) => {
+        let pathname = path.join(dir, file)
+        if (fs.statSync(pathname).isDirectory()) {
+          this.travel(pathname, callback)
+        } else {
+          callback(pathname)
+        }
+      })
+    }
   }
 }
 </script>

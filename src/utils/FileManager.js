@@ -38,7 +38,7 @@ const saveInfo = (filePre, fileName, fileSize, host, port) => {
       try {
         let infoFD = fs.openSync(filePre + '/' + fileName + '.json', 'w')
         console.log(JSON.stringify(res))
-        fs.writeSync(infoFD, JSON.stringify(res))
+        fs.writeFileSync(infoFD, JSON.stringify(res))
         resolve(true)
       } catch (error) {
         reject(error, false)

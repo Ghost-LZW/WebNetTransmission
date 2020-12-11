@@ -1,27 +1,40 @@
 <template>
-<div>
-  <el-col :gutter="20">
-    <el-row :align="4" id="status">Status</el-row>
-    <el-row :align="20">
-      <el-menu :default-active="activeIndex" ref="rootMenu" router active-text-color="#ffd04b" background-color="#2667ad">
-        <el-menu-item index="/totTasks"><div class="showNum"><span class="displayNum" id="all">0</span></div>全部</el-menu-item>
-        <hr />
-        <el-menu-item index="/downloadingTasks"><div class="showNum"><span class="displayNum" id="downloading" >0</span></div>下载中</el-menu-item>
-        <el-menu-item index="/serverTasks"><div class="showNum"><span class="displayNum" id="serving">0</span></div>服务中</el-menu-item>
-        <el-menu-item index="/pausingTasks"><div class="showNum"><span class="displayNum" id="pausing">0</span></div>已暂停</el-menu-item>
-        <el-menu-item index="/completedTasks"><div class="showNum"><span class="displayNum" id="completed">0</span></div>已完成</el-menu-item>
-      </el-menu>
-    </el-row>
-  </el-col>
-</div>
+  <div>
+    <el-col :gutter="20">
+      <el-row :span="4" id="status">Status</el-row>
+      <el-row :span="20">
+        <el-menu :default-active="activeIndex" ref="rootMenu" router active-text-color="#ffd04b" background-color="#2667ad" text-color="#ffffff">
+          <el-menu-item index="/totTasks"><div class="showNum"><span class="displayNum" id="all" v-text="totTasks"></span></div>全部</el-menu-item>
+          <hr />
+          <el-menu-item index="/downloadingTasks">
+            <div class="showNum"><span class="displayNum" id="downloading" v-text="downloadTasks"></span></div>下载中
+          </el-menu-item>
+          <el-menu-item index="/serverTasks">
+            <div class="showNum"><span class="displayNum" id="serving" v-text="serverTasks"></span></div>服务中
+          </el-menu-item>
+          <el-menu-item index="/pausingTasks">
+            <div class="showNum"><span class="displayNum" id="pausing" v-text="pauseTasks"></span></div>已暂停
+          </el-menu-item>
+          <el-menu-item index="/completedTasks">
+            <div class="showNum"><span class="displayNum" id="completed" v-text="completeTasks"></span></div>已完成
+          </el-menu-item>
+        </el-menu>
+      </el-row>
+    </el-col>
+  </div>
 </template>
 
 <script>
 export default {
   name: 'AsideBar',
-  data: () => {
+  data: function () {
     return {
-      activeIndex: this.$route.path
+      activeIndex: this.$route.path,
+      totTasks: 0,
+      downloadTasks: 0,
+      serverTasks: 0,
+      pauseTasks: 0,
+      completeTasks: 0
     }
   },
   watch: {

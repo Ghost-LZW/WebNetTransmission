@@ -8,33 +8,34 @@ const path = require('path')
 
 console.log(path.dirname(process.execPath))
 
-const downloadDir = path.dirname(process.execPath) + '/download'
+const downloadDir = path.join(path.dirname(process.execPath) + '/download')
 
 if (!fs.existsSync(downloadDir)) {
   fs.mkdirSync(downloadDir)
 }
 
 class downloadManager extends EventEmitter {
-  constructor (filePath) {
+  constructor (filePath, store) {
     super()
     this.configFile = fs.openSync(filePath + '.json', 'r')
+    this.$store = store
     console.log('read success')
     this.config = JSON.parse(fs.readFileSync(this.configFile).toString())
     fs.closeSync(this.configFile)
-    this.configFile = fs.openSync(filePath + '.json', 'w')
+    this.configFile = filePath + '.json'
     this.file = fs.openSync(filePath + '.ltf', 'w')
     // eslint-disable-next-line no-path-concat
-    this.workpool = new WorkerPool('./static/downloadWorker.js')
+    this.workpool = new WorkerPool('./static/downloadWorker.js', 64)
     this.runTask = {}
     this.on('finish', () => {
       if (Object.getOwnPropertyNames(this.config['tasks']).length === 0 && fs.existsSync(filePath + '.ltf')) {
+        console.log(this.$store.state.totTaskData)
         fs.renameSync(filePath + '.ltf', filePath)
         this.workpool.destroy(true)
         this.removeAllListeners('data')
         this.removeAllListeners('fail')
         this.removeAllListeners('finish')
         fs.closeSync(this.file)
-        fs.closeSync(this.configFile)
       }
     })
     this.on('fail', (msg) => {
@@ -53,36 +54,72 @@ class downloadManager extends EventEmitter {
     })
 
     this.on('data', (data) => {
-      fs.writeSync(this.file, data.data, 0, data.size, data.task)
-      let newTask = data.task + data.size
-      let old = this.runTask[data.task.toString()]
-      if (old > data.size) {
-        this.runTask[newTask.toString()] = old - data.size
-        this.config.tasks[newTask.toString()] = old - data.size
+      if (this.runTask.hasOwnProperty(data.task.toString())) {
+        fs.writeSync(this.file, data.data, 0, data.size, data.task)
+        this.$store.commit('update', [this.config['FileName'], data.size])
+        let newTask = data.task + data.size
+        let old = this.runTask[data.task.toString()]
+        if (old > data.size) {
+          this.runTask[newTask.toString()] = old - data.size
+          this.config.tasks[newTask.toString()] = old - data.size
+        }
+        delete this.runTask[data.task.toString()]
+        delete this.config.tasks[data.task.toString()]
+
+        this.saveInfo()
+        if (!this.runTask.hasOwnProperty(newTask.toString())) {
+          this.emit('finish')
+          return
+        }
+
+        let dataN = {
+          'host': data.host,
+          'port': data.port,
+          'task': newTask,
+          'FileName': this.config['FileName'],
+          'FileSize': this.config['FileSize']
+        }
+        this.workpool.run(dataN).then((res) => {
+          console.log(res)
+          this.emit(res['code'], res)
+        }).catch(err => {
+          console.log('download error : ', err)
+        })
+
+        if (data.hasOwnProperty('addrData')) {
+          for (let k in data.addrData) {
+            if (data.addrData.hasOwnProperty(k)) {
+              if (!(this.config.address.hasOwnProperty(k))) this.config.address[k] = data.addrData[k]
+              else {
+                let len = data.addrData[k].length
+                for (let i = 0; i < len; ++i) {
+                  if (this.config.address[k].indexOf(data.addrData[k][i]) === -1) {
+                    this.config.address[k].push(data.addrData[k][i])
+                    if (this.workpool.getInactiveWorkerId() !== -1) {
+                      dataN = {
+                        'host': k,
+                        'port': data.addrData[k][i],
+                        'task': this.findTask(),
+                        'FileName': this.config['FileName'],
+                        'FileSize': this.config['FileSize']
+                      }
+                      this.workpool.run(dataN).then((res) => {
+                        console.log(res)
+                        this.emit(res['code'], res)
+                      }).catch(err => {
+                        console.log('download error : ', err)
+                      })
+                    }
+                  }
+                }
+              }
+            }
+          }
+          this.saveInfo()
+        }
       }
-      delete this.runTask[data.task.toString()]
-      delete this.config.tasks[data.task.toString()]
-
-      this.saveInfo()
-      if (!this.runTask.hasOwnProperty(newTask.toString())) {
-        this.emit('finish')
-        return
-      }
-
-      let dataN = {'host': data.host,
-        'port': data.port,
-        'task': newTask,
-        'FileName': this.config['FileName'],
-        'FileSize': this.config['FileSize']}
-      this.workpool.run(dataN).then((res) => {
-        console.log(res)
-        this.emit(res['code'], res)
-      }).catch(err => {
-        console.log('download error : ', err)
-      })
-
       if (this.workpool.getInactiveWorkerId() !== -1) {
-        dataN = {
+        let dataN = {
           'host': data.host,
           'port': data.port,
           'task': this.findTask(),
@@ -96,43 +133,11 @@ class downloadManager extends EventEmitter {
           console.log('download error : ', err)
         })
       }
-
-      if (data.hasOwnProperty('addrData')) {
-        for (let k in data.addrData) {
-          if (data.addrData.hasOwnProperty(k)) {
-            if (!(this.config.address.hasOwnProperty(k))) this.config.address[k] = data.addrData[k]
-            else {
-              let len = data.addrData[k].length
-              for (let i = 0; i < len; ++i) {
-                if (this.config.address[k].indexOf(data.addrData[k][i]) === -1) {
-                  this.config.address[k].push(data.addrData[k][i])
-                  if (this.workpool.getInactiveWorkerId() !== -1) {
-                    dataN = {
-                      'host': k,
-                      'port': data.addrData[k][i],
-                      'task': this.findTask(),
-                      'FileName': this.config['FileName'],
-                      'FileSize': this.config['FileSize']
-                    }
-                    this.workpool.run(dataN).then((res) => {
-                      console.log(res)
-                      this.emit(res['code'], res)
-                    }).catch(err => {
-                      console.log('download error : ', err)
-                    })
-                  }
-                }
-              }
-            }
-          }
-        }
-        this.saveInfo()
-      }
     })
   }
 
   saveInfo () {
-    fs.writeFileSync(this.configFile, JSON.stringify(this.config))
+    fs.writeFileSync(this.configFile, JSON.stringify(this.config), {flag: 'w'})
   }
 
   findTask () {
@@ -223,10 +228,17 @@ const receiveFile = (host, port) => {
       }).catch(err => {
         console.log('error : ', err)
       }).then((r) => {
+        let res = {name: fileName}
+        let info = JSON.parse(fs.readFileSync(downloadDir + '/' + fileName + '.json').toString())
+        res.size = info.FileSize
+        res.progress = 0
+        res.isPaused = false
+
+        this.$store.commit('addTableData', res)
         console.log('save success', r)
         // direct download test -- remove in release
         // eslint-disable-next-line new-cap,no-path-concat
-        let down = new downloadManager(downloadDir + '/' + fileName)
+        let down = new downloadManager(downloadDir + '/' + fileName, this.$store)
         down.download()
       }).catch((err) => {
         console.log('error = ', err)
@@ -253,7 +265,8 @@ const receiveFile = (host, port) => {
   remote.connect(port, host)
 }
 
-let download = (host, port) => {
+let download = (host, port, store) => {
+  this.$store = store
   return new Promise((resolve) => {
     receiveFile(host, port)
     resolve(true)
