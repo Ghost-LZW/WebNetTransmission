@@ -31,9 +31,16 @@ export default new Vuex.Store({
           let indexR = state.completedTaskData.findIndex((res) => {
             return res.name === name
           })
-          if (indexR === -1) return
-          state.completedTaskData.splice(indexR, 1)
-          state.runningTaskData.push(data)
+          if (indexR === -1) {
+            indexR = state.pausedTaskData.findIndex((res) => {
+              return res.name === name
+            })
+            state.pausedTaskData.splice(indexR, 1)
+            state.runningTaskData.pause(data)
+          } else {
+            state.completedTaskData.splice(indexR, 1)
+            state.runningTaskData.push(data)
+          }
         }
         return
       }
