@@ -63,7 +63,8 @@ export default {
     getIPV4Address: function () {
       let interfaces = require('os').networkInterfaces()
       for (let devName in interfaces) {
-        if (interfaces.hasOwnProperty(devName)) {
+        if (interfaces.hasOwnProperty(devName) && devName === 'WLAN') {
+          console.log(devName, interfaces)
           let iface = interfaces[devName]
           for (let i = 0; i < iface.length; i++) {
             let alias = iface[i]

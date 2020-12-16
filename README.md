@@ -36,6 +36,8 @@ web端采用vue+nwjs实现
 
 每次新客户端接入，服务端记录为新的服务地址，并向后来客户端暴露 (可选
 
+没有使用传统P2P协议，如BitTorrent，使用tracker进行跟踪，但也可附加上tracker扩展
+
 ### 协议格式
 
 此协议中文本无特殊标记全为utf-8
@@ -222,7 +224,7 @@ npm test
 
 For a detailed explanation on how things work, check out the [guide](http://vuejs-templates.github.io/webpack/) and [docs for vue-loader](http://vuejs.github.io/vue-loader).
 
-## Licensed
+## License
 
 ```text
 Copyright [2020] [ghost-lzw]

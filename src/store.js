@@ -36,7 +36,7 @@ export default new Vuex.Store({
               return res.name === name
             })
             state.pausedTaskData.splice(indexR, 1)
-            state.runningTaskData.pause(data)
+            state.runningTaskData.push(data)
           } else {
             state.completedTaskData.splice(indexR, 1)
             state.runningTaskData.push(data)

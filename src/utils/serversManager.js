@@ -27,9 +27,10 @@ let server = net.createServer(
           console.log('get in')
           let info = Buffer.from('LP2P 0.1\n1')
           buffer = Buffer.alloc(1)
-          buffer.writeUInt8(path.basename(res).length, 0)
+          buffer.writeUInt8(Buffer.from(path.basename(res)).length, 0)
+          console.log(Buffer.from(path.basename(res)).length)
           info = Buffer.concat([info, buffer, Buffer.from(path.basename(res))],
-            info.length + buffer.length + path.basename(res).length)
+            info.length + buffer.length + Buffer.from(path.basename(res)).length)
           buffer = Buffer.alloc(6)
           buffer.writeUIntBE(fs.statSync(res).size, 0, 6)
           info = Buffer.concat([info, buffer], info.length + buffer.length)
@@ -62,9 +63,9 @@ let server = net.createServer(
 
           let dataFile = Buffer.from('LP2P 0.1\n3')
           buffer = Buffer.alloc(1)
-          buffer.writeUInt8(path.basename(res).length, 0)
+          buffer.writeUInt8(Buffer.from(path.basename(res)).length, 0)
           dataFile = Buffer.concat([dataFile, buffer, Buffer.from(path.basename(res))],
-            dataFile.length + buffer.length + path.basename(res).length)
+            dataFile.length + buffer.length + Buffer.from(path.basename(res)).length)
           buffer = Buffer.alloc(6)
           buffer.writeUIntBE(fs.statSync(res).size, 0, 6)
           dataFile = Buffer.concat([dataFile, buffer], dataFile.length + buffer.length)
